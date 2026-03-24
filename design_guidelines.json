@@ -1,0 +1,163 @@
+{
+  "brand_identity": {
+    "name": "Carvio Cabs",
+    "theme": "Midnight Executive",
+    "core_values": ["Premium", "Punctual", "Secure", "Elite"],
+    "emotional_tone": "Authoritative, Calm, Luxurious"
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Outfit, sans-serif",
+      "body": "Plus Jakarta Sans, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "weights": {
+      "light": 300,
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "scale": {
+      "h1": "text-5xl md:text-7xl font-bold tracking-tight leading-none",
+      "h2": "text-4xl md:text-5xl font-semibold tracking-tight",
+      "h3": "text-2xl md:text-3xl font-medium",
+      "body_lg": "text-lg md:text-xl leading-relaxed text-muted-foreground",
+      "body_base": "text-base leading-relaxed text-muted-foreground",
+      "caption": "text-sm uppercase tracking-widest text-muted-foreground"
+    },
+    "imports": [
+      "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    ]
+  },
+  "colors": {
+    "palette": {
+      "primary": "#050505",
+      "secondary": "#FFFFFF",
+      "accent": "#FFD700",
+      "surface": "#121212",
+      "surface_highlight": "#1E1E1E",
+      "border": "#27272a",
+      "text_primary": "#FFFFFF",
+      "text_secondary": "#A1A1AA",
+      "success": "#10B981",
+      "error": "#EF4444"
+    },
+    "usage": {
+      "background": "bg-[#050505]",
+      "card_bg": "bg-[#121212]",
+      "text_main": "text-white",
+      "text_muted": "text-zinc-400",
+      "cta_primary": "bg-[#FFD700] text-black hover:bg-[#E5C100]",
+      "cta_secondary": "bg-white text-black hover:bg-zinc-200",
+      "border_subtle": "border-zinc-800"
+    }
+  },
+  "layout": {
+    "spacing": {
+      "container_padding": "px-6 md:px-12 lg:px-24",
+      "section_gap": "py-20 md:py-32",
+      "grid_gap": "gap-6 md:gap-12"
+    },
+    "grid_system": {
+      "marketing": "grid grid-cols-1 md:grid-cols-12 gap-8",
+      "dashboard": "grid grid-cols-1 md:grid-cols-4 gap-6",
+      "bento_fleet": "grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[400px]"
+    },
+    "container": "max-w-7xl mx-auto"
+  },
+  "components": {
+    "buttons": {
+      "style": "rounded-sm font-medium tracking-wide transition-all duration-300",
+      "primary": "bg-[#FFD700] text-black hover:scale-[1.02] active:scale-[0.98]",
+      "outline": "border border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600"
+    },
+    "cards": {
+      "style": "bg-[#121212] border border-zinc-800 rounded-lg overflow-hidden hover:border-zinc-600 transition-colors duration-300",
+      "glass": "bg-black/40 backdrop-blur-xl border border-white/10"
+    },
+    "inputs": {
+      "style": "bg-[#0A0A0A] border-zinc-800 focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700] rounded-sm h-12 text-white placeholder:text-zinc-600"
+    }
+  },
+  "visual_enhancers": {
+    "gradients": {
+      "hero_overlay": "bg-gradient-to-t from-[#050505] via-[#050505]/50 to-transparent",
+      "gold_glow": "bg-[#FFD700] blur-[100px] opacity-20"
+    },
+    "textures": "bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay",
+    "shadows": {
+      "glow": "shadow-[0_0_40px_-10px_rgba(255,215,0,0.3)]"
+    }
+  },
+  "motion": {
+    "library": "framer-motion",
+    "transitions": {
+      "default": { "duration": 0.4, "ease": [0.22, 1, 0.36, 1] },
+      "slow": { "duration": 0.8, "ease": [0.22, 1, 0.36, 1] }
+    },
+    "scroll": "lenis"
+  },
+  "image_urls": {
+    "hero": {
+      "url": "https://images.unsplash.com/photo-1564181064972-432b6f96c0ef?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwyfHxsdXh1cnklMjBibGFjayUyMG1lcmNlZGVzJTIwcyUyMGNsYXNzJTIwY2hhdWZmZXVyJTIwY2l0eSUyMG5pZ2h0fGVufDB8fHx8MTc3MTkyOTQzNHww&ixlib=rb-4.1.0&q=85",
+      "alt": "Luxury Black Mercedes S-Class at night",
+      "category": "hero_background"
+    },
+    "service_chauffeur": {
+      "url": "https://images.unsplash.com/photo-1769107460617-df160422a151?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHwyfHxidXNpbmVzcyUyMG1hbiUyMGdldHRpbmclMjBpbnRvJTIwbHV4dXJ5JTIwYmxhY2slMjBjYXIlMjBjaGF1ZmZldXIlMjBvcGVuaW5nJTIwZG9vcnxlbnwwfHx8fDE3NzE5Mjk0Mzh8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Professional Chauffeur Service",
+      "category": "services"
+    },
+    "fleet_interior": {
+      "url": "https://images.unsplash.com/photo-1753183514606-3aa17d649872?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3MjQyMTd8MHwxfHNlYXJjaHwyfHxsdXh1cnklMjBjYXIlMjBpbnRlcmlvciUyMGxlYXRoZXIlMjBzZWF0cyUyMGJlaWdlfGVufDB8fHx8MTc3MTkyOTQ0MHww&ixlib=rb-4.1.0&q=85",
+      "alt": "Premium Leather Interior",
+      "category": "fleet_detail"
+    },
+    "corporate_trust": {
+      "url": "https://images.unsplash.com/photo-1752159400890-d906038f1b35?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzR8MHwxfHNlYXJjaHw0fHxjb3Jwb3JhdGUlMjBidXNpbmVzcyUyMG1hbiUyMGdldHRpbmclMjBwZW9wbGUlMjBzaGFraW5nJTIwaGFuZHN8ZW58MHx8fHwxNzcxOTI5NDQyfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Corporate Agreement Handshake",
+      "category": "trust_section"
+    },
+    "airport_transfer": {
+      "url": "https://images.unsplash.com/photo-1632861098327-108639f71ce6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxNzV8MHwxfHNlYXJjaHwzfHxwcml2YXRlJTIwamV0JTIwYWlycG9ydCUyMHRlcm1pbmFsJTIwbHV4dXJ5JTIwY2FyJTIwdHJhbnNmZXJ8ZW58MHx8fHwxNzcxOTI5NDQ1fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Airport Tarmac Transfer",
+      "category": "services"
+    },
+    "logo": {
+      "url": "https://customer-assets.emergentagent.com/job_1a245343-e48a-4d95-b813-d4323c66be82/artifacts/ceogvz6u_WhatsApp%20Image%202026-02-01%20at%2014.34.50.jpeg",
+      "alt": "Carvio Cabs Logo",
+      "category": "brand"
+    }
+  },
+  "instructions_to_main_agent": [
+    "IMPLEMENTATION PRIORITY: Mobile-First. Ensure all touch targets are at least 44px.",
+    "THEME STRATEGY: Use 'Midnight Executive' (Dark Mode) for the Landing Page to sell the premium feel. Use a cleaner, high-contrast Light Mode for the Admin Panel to ensure data readability.",
+    "NAVIGATION: On mobile, use a bottom tab bar (Home, Book, Trips, Profile) instead of a hamburger menu for the main app feel.",
+    "BOOKING FLOW: Break it down into steps: 1. Ride Details (Where/When) -> 2. Vehicle Selection (Cards) -> 3. Extras -> 4. Review & Pay.",
+    "MAPS: Use a dark-themed map style (e.g., Mapbox Dark or Google Maps Night Mode) to match the app aesthetic.",
+    "CRITICAL: Do NOT use default Shadcn 'slate' colors. Override them with the 'Zinc' or 'Neutral' palette defined in colors.palette.",
+    "IMAGES: Use the provided Unsplash URLs. Do not use placeholders.",
+    "TESTING: Add data-testid to all interactive elements (buttons, inputs, cards)."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯📚🎭🎬🎪🎉🎊🎁🎀🎂🍰🎈🎨🎰💰💵💳🏦💎🪙💸🤑📊📈📉💹🔢🏆🥇 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
+    "Prioritize using pre-existing components from src/components/ui when applicable",
+    "Create new components that match the style and conventions of existing components when needed",
+    "Examine existing components to understand the project's component patterns before creating new ones",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use sonner for toasts. Sonner component are located in /app/src/components/ui/sonner.tsx"
+  ]
+}

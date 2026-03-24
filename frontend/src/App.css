@@ -1,0 +1,135 @@
+/* App.css - Carvio Cabs Styles */
+
+/* Remove default text-align center */
+.App {
+  min-height: 100vh;
+}
+
+/* Hero gradient overlay */
+.hero-overlay {
+  background: linear-gradient(to top, #050505 0%, rgba(5, 5, 5, 0.7) 50%, rgba(5, 5, 5, 0.3) 100%);
+}
+
+/* Gold accent line */
+.gold-line {
+  width: 60px;
+  height: 3px;
+  background: #FFD700;
+}
+
+/* Service card hover */
+.service-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px -10px rgba(255, 215, 0, 0.15);
+}
+
+/* Fleet card */
+.fleet-card {
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.fleet-card:hover {
+  transform: scale(1.02);
+  border-color: #FFD700;
+}
+
+/* Step indicator */
+.step-active {
+  background: #FFD700;
+  color: #050505;
+}
+
+.step-completed {
+  background: #10B981;
+  color: white;
+}
+
+.step-pending {
+  background: #27272a;
+  color: #A1A1AA;
+}
+
+/* Mobile bottom nav */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(5, 5, 5, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid #27272a;
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Table styles for admin */
+.admin-table th {
+  background: #121212;
+  color: #A1A1AA;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.admin-table td {
+  border-bottom: 1px solid #27272a;
+}
+
+.admin-table tr:hover td {
+  background: #1E1E1E;
+}
+
+/* Status badges */
+.badge-pending {
+  background: rgba(234, 179, 8, 0.1);
+  color: #EAB308;
+  border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+.badge-confirmed {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.badge-completed {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3B82F6;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.badge-cancelled {
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Loader */
+.loader {
+  border: 3px solid #27272a;
+  border-top: 3px solid #FFD700;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Hide scrollbar for horizontal scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
