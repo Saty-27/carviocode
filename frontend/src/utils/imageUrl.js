@@ -1,11 +1,17 @@
 const getBackendBase = () => {
   const envUrl = process.env.REACT_APP_BACKEND_URL;
-  if (envUrl) {
+  const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
+  const protocol = typeof window !== "undefined" ? window.location.protocol : "http:";
+  
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return (envUrl || `${protocol}//${hostname}:8000`).replace("/api", "");
+  }
+  
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
     return envUrl.replace("/api", "");
   }
-  const protocol = typeof window !== "undefined" ? window.location.protocol : "http:";
-  const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
-  return `${protocol}//${hostname}:8000`;
+  
+  return `${protocol}//${hostname}`;
 };
 const BACKEND_BASE = getBackendBase();
 

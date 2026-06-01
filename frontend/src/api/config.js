@@ -1,3 +1,2 @@
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
-export const API = `${BACKEND_URL}/api`;
-export { BACKEND_URL };
+import { BACKEND_URL, API } from "../apiConfig";
+export { BACKEND_URL, API };
