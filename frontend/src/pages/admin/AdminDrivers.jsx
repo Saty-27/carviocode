@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { API } from "@/App";
+import { API } from "@/apiConfig";
 import { AdminSidebar, AdminHeader } from "./AdminDashboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,7 +84,7 @@ export default function AdminDrivers() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505]">
+    <div className="min-h-screen bg-primary">
       <AdminSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       
       <main className="lg:ml-64">
@@ -105,45 +105,45 @@ export default function AdminDrivers() {
                   <Plus size={18} className="mr-2" /> Add Driver
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-[#121212] border-zinc-800">
+              <DialogContent className="bg-secondary border-border">
                 <DialogHeader>
-                  <DialogTitle className="text-white">{editingDriver ? "Edit Driver" : "Add New Driver"}</DialogTitle>
+                  <DialogTitle className="text-foreground">{editingDriver ? "Edit Driver" : "Add New Driver"}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-zinc-400">Name *</Label>
+                    <Label className="text-muted-foreground">Name *</Label>
                     <Input
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Driver name"
-                      className="bg-[#0A0A0A] border-zinc-800 mt-1"
+                      className="bg-background border-border text-foreground mt-1"
                     />
                   </div>
                   <div>
-                    <Label className="text-zinc-400">Phone *</Label>
+                    <Label className="text-muted-foreground">Phone *</Label>
                     <Input
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="Phone number"
-                      className="bg-[#0A0A0A] border-zinc-800 mt-1"
+                      className="bg-background border-border text-foreground mt-1"
                     />
                   </div>
                   <div>
-                    <Label className="text-zinc-400">Email *</Label>
+                    <Label className="text-muted-foreground">Email *</Label>
                     <Input
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="Email address"
-                      className="bg-[#0A0A0A] border-zinc-800 mt-1"
+                      className="bg-background border-border text-foreground mt-1"
                     />
                   </div>
                   <div>
-                    <Label className="text-zinc-400">License Number *</Label>
+                    <Label className="text-muted-foreground">License Number *</Label>
                     <Input
                       value={formData.license_number}
                       onChange={(e) => setFormData({ ...formData, license_number: e.target.value })}
                       placeholder="License number"
-                      className="bg-[#0A0A0A] border-zinc-800 mt-1"
+                      className="bg-background border-border text-foreground mt-1"
                     />
                   </div>
                   <Button onClick={handleSubmit} className="w-full bg-[#FFD700] text-black hover:bg-[#E5C100]">
@@ -166,7 +166,7 @@ export default function AdminDrivers() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="card-dark p-6"
+                  className="card-dark p-6 bg-secondary"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -174,9 +174,9 @@ export default function AdminDrivers() {
                         <User className="text-[#FFD700]" size={24} />
                       </div>
                       <div>
-                        <p className="text-white font-semibold">{driver.name}</p>
+                        <p className="text-foreground font-semibold">{driver.name}</p>
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          driver.is_available ? "bg-[#10B981]/10 text-[#10B981]" : "bg-zinc-800 text-zinc-500"
+                          driver.is_available ? "bg-[#10B981]/10 text-[#10B981]" : "bg-background text-muted-foreground"
                         }`}>
                           {driver.is_available ? "Available" : "Busy"}
                         </span>
@@ -185,20 +185,20 @@ export default function AdminDrivers() {
                   </div>
 
                   <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-zinc-400 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
                       <Phone size={14} /> {driver.phone}
                     </div>
-                    <div className="flex items-center gap-2 text-zinc-400 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
                       <Mail size={14} /> {driver.email}
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-4 border-t border-zinc-800">
+                  <div className="flex gap-2 pt-4 border-t border-border">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => openEditDialog(driver)}
-                      className="flex-1 border-zinc-700 text-white hover:bg-zinc-800"
+                      className="flex-1 border-border text-foreground hover:bg-background"
                     >
                       <Edit2 size={14} className="mr-1" /> Edit
                     </Button>

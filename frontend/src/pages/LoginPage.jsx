@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { API, useAuth } from "@/App";
+import { API } from "@/apiConfig";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,9 +58,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] flex">
+    <div className="min-h-screen bg-background flex">
       {/* Left Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 md:p-12">
+      <div className="flex-1 flex items-center justify-center p-6 md:p-12 bg-background">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -67,46 +68,46 @@ export default function LoginPage() {
         >
           <Link to="/" className="flex items-center gap-3 mb-12">
             <img src={LOGO_URL} alt="Carvio Cabs" className="h-12 w-12 rounded-full" />
-            <span className="text-xl font-bold text-white">Carvio Cabs</span>
+            <span className="text-xl font-bold text-foreground">Carvio Cabs</span>
           </Link>
 
-          <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-          <p className="text-zinc-500 mb-8">Sign in to continue booking your rides</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Welcome Back</h1>
+          <p className="text-muted-foreground mb-8">Sign in to continue booking your rides</p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="email" className="text-zinc-400">Email Address</Label>
+              <Label htmlFor="email" className="text-muted-foreground font-medium">Email Address</Label>
               <div className="relative mt-2">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="pl-10 bg-[#0A0A0A] border-zinc-800 focus:border-[#FFD700] h-12 text-white"
+                  className="pl-10 bg-secondary border-border focus:border-[#FFD700] h-12 text-foreground"
                   data-testid="login-email-input"
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor="password" className="text-zinc-400">Password</Label>
+              <Label htmlFor="password" className="text-muted-foreground font-medium">Password</Label>
               <div className="relative mt-2">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="pl-10 pr-10 bg-[#0A0A0A] border-zinc-800 focus:border-[#FFD700] h-12 text-white"
+                  className="pl-10 pr-10 bg-secondary border-border focus:border-[#FFD700] h-12 text-foreground"
                   data-testid="login-password-input"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -126,10 +127,10 @@ export default function LoginPage() {
 
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-zinc-800" />
+              <div className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-[#050505] text-zinc-500">or continue with</span>
+              <span className="px-4 bg-background text-muted-foreground">or continue with</span>
             </div>
           </div>
 
@@ -137,7 +138,7 @@ export default function LoginPage() {
             type="button"
             variant="outline"
             onClick={handleGoogleLogin}
-            className="w-full border-zinc-700 text-white hover:bg-zinc-800 h-12"
+            className="w-full border-border text-foreground hover:bg-secondary h-12"
             data-testid="google-login-btn"
           >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -149,17 +150,17 @@ export default function LoginPage() {
             Continue with Google
           </Button>
 
-          <p className="text-center text-zinc-500 mt-8">
+          <p className="text-center text-muted-foreground mt-8">
             Don't have an account?{" "}
-            <Link to="/register" className="text-[#FFD700] hover:underline">
+            <Link to="/register" className="text-[#FFD700] hover:underline font-medium">
               Sign up
             </Link>
           </p>
 
           {/* Demo credentials notice */}
-          <div className="mt-8 p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-            <p className="text-zinc-400 text-sm text-center">
-              <span className="text-[#FFD700]">Admin Demo:</span><br />
+          <div className="mt-8 p-4 bg-secondary/50 rounded-lg border border-border">
+            <p className="text-muted-foreground text-sm text-center">
+              <span className="text-[#FFD700] font-semibold">Admin Demo:</span><br />
               admin@carviocabs.com / admin123
             </p>
           </div>
@@ -168,7 +169,7 @@ export default function LoginPage() {
 
       {/* Right Side - Image */}
       <div className="hidden lg:flex flex-1 relative">
-        <div className="absolute inset-0 bg-gradient-to-l from-transparent to-[#050505]" />
+        <div className="absolute inset-0 bg-gradient-to-l from-transparent to-background" />
         <img 
           src="https://images.unsplash.com/photo-1564181064972-432b6f96c0ef?crop=entropy&cs=srgb&fm=jpg&q=85"
           alt="Luxury car"

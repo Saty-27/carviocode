@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { API, useAuth } from "@/App";
+import { API } from "@/apiConfig";
+import { useAuth } from "@/context/AuthContext";
 import { Navbar, Footer } from "@/pages/HomePage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ export default function BookingPage() {
 
   // Fleet data
   const [fleet, setFleet] = useState([]);
+  const [settings, setSettings] = useState({ enable_cash_payment: true });
   const [loading, setLoading] = useState(true);
 
   // Form state
@@ -56,24 +58,28 @@ export default function BookingPage() {
   const [bookingResult, setBookingResult] = useState(null);
 
   useEffect(() => {
-    const fetchFleet = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get(`${API}/fleet`);
-        setFleet(response.data);
+        const [fleetRes, settingsRes] = await Promise.all([
+          axios.get(`${API}/fleet`),
+          axios.get(`${API}/settings`)
+        ]);
+        setFleet(fleetRes.data);
+        setSettings(settingsRes.data || { enable_cash_payment: true });
       } catch (error) {
-        console.error("Error fetching fleet:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchFleet();
+    fetchData();
   }, []);
 
   const selectedCarData = fleet.find(c => c.car_id === selectedCar);
 
   const calculateFare = async () => {
-    if (!selectedCar || !distanceKm) {
-      toast.error("Please select a car and enter distance");
+    if (!selectedCar) {
+      toast.error("Please select a car");
       return;
     }
 
@@ -82,7 +88,7 @@ export default function BookingPage() {
       const response = await axios.post(`${API}/fare/calculate`, {
         trip_type: tripType,
         car_id: selectedCar,
-        distance_km: parseFloat(distanceKm),
+        distance_km: distanceKm ? parseFloat(distanceKm) : 0,
         duration_hours: durationHours ? parseFloat(durationHours) : null,
         pickup_time: pickupTime,
         pickup_date: pickupDate ? format(pickupDate, "yyyy-MM-dd") : null,
@@ -113,15 +119,55 @@ export default function BookingPage() {
         pickup_date: format(pickupDate, "yyyy-MM-dd"),
         pickup_time: pickupTime,
         return_date: returnDate ? format(returnDate, "yyyy-MM-dd") : null,
-        distance_km: parseFloat(distanceKm),
+        distance_km: distanceKm ? parseFloat(distanceKm) : 0,
         duration_hours: durationHours ? parseFloat(durationHours) : null,
         payment_type: paymentType
       }, { withCredentials: true });
 
       setBookingResult(response.data);
 
+      // Send Web3Forms email notification from client-side
+      try {
+        const formData = new FormData();
+        formData.append("access_key", "43dadfae-99d2-46d0-841a-cf5747e0ced7");
+        formData.append("subject", `New Booking Created - ${response.data.booking_id}`);
+        formData.append("from_name", "Carvio Cabs");
+        formData.append("name", user?.name || "Customer");
+        formData.append("email", user?.email || "");
+        formData.append("message", `
+New Booking Created:
+----------------------
+Booking ID: ${response.data.booking_id}
+Customer Name: ${user?.name || "Customer"}
+Customer Email: ${user?.email || ""}
+Customer Phone: ${user?.phone || ""}
+Trip Type: ${tripType}
+Vehicle: ${selectedCarData?.name || selectedCar}
+Pickup Location: ${pickupLocation}
+Drop Location: ${dropLocation || "Not specified"}
+Pickup Date: ${pickupDate ? format(pickupDate, "yyyy-MM-dd") : ""}
+Pickup Time: ${pickupTime}
+Return Date: ${returnDate ? format(returnDate, "yyyy-MM-dd") : "N/A"}
+Estimated Distance: ${distanceKm ? `${distanceKm} km` : "Not specified"}
+Duration: ${durationHours ? `${durationHours} hours` : "N/A"}
+Total Fare: INR ${response.data.total_fare}
+Payment Type: ${paymentType}
+Payment Status: ${response.data.payment_status}
+Booking Status: Pending
+        `);
+
+        fetch("https://api.web3forms.com/submit", {
+          method: "POST",
+          body: formData
+        }).then(r => r.json()).then(data => {
+          console.log("Web3Forms booking response:", data);
+        }).catch(err => console.error("Web3Forms booking submit error:", err));
+      } catch (err) {
+        console.error("Web3Forms booking fetch error:", err);
+      }
+
       // If payment required, initiate Razorpay
-      if (paymentType !== "corporate" && response.data.razorpay_order_id) {
+      if (!["corporate", "cash"].includes(paymentType) && response.data.razorpay_order_id) {
         initiatePayment(response.data);
       } else {
         setCurrentStep(5);
@@ -162,6 +208,33 @@ export default function BookingPage() {
             razorpay_signature: response.razorpay_signature
           }, { withCredentials: true });
           
+          // Send Web3Forms payment verification email notification from client-side
+          try {
+            const formData = new FormData();
+            formData.append("access_key", "43dadfae-99d2-46d0-841a-cf5747e0ced7");
+            formData.append("subject", `Booking Payment Verified & Confirmed - ${bookingData.booking_id}`);
+            formData.append("from_name", "Carvio Cabs");
+            formData.append("name", user?.name || "Customer");
+            formData.append("email", user?.email || "");
+            formData.append("message", `
+Payment Confirmed:
+----------------------
+Booking ID: ${bookingData.booking_id}
+Customer Name: ${user?.name || "Customer"}
+Customer Email: ${user?.email || ""}
+Razorpay Order ID: ${response.razorpay_order_id}
+Razorpay Payment ID: ${response.razorpay_payment_id}
+Booking Status: Confirmed / Paid
+            `);
+
+            fetch("https://api.web3forms.com/submit", {
+              method: "POST",
+              body: formData
+            }).catch(err => console.error("Web3Forms payment submit error:", err));
+          } catch (err) {
+            console.error("Web3Forms payment fetch error:", err);
+          }
+
           setCurrentStep(5);
           toast.success("Payment successful! Booking confirmed.");
         } catch (error) {
@@ -183,7 +256,9 @@ export default function BookingPage() {
   };
 
   const nextStep = () => {
-    if (currentStep === 3) {
+    if (currentStep === 1 && searchParams.get("car")) {
+      setCurrentStep(3);
+    } else if (currentStep === 3) {
       calculateFare();
     } else {
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
@@ -191,16 +266,27 @@ export default function BookingPage() {
   };
 
   const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    if (currentStep === 3 && searchParams.get("car")) {
+      setCurrentStep(1);
+    } else {
+      setCurrentStep(prev => Math.max(prev - 1, 1));
+    }
   };
 
-  const steps = [
-    { num: 1, title: "Trip Type" },
-    { num: 2, title: "Select Car" },
-    { num: 3, title: "Trip Details" },
-    { num: 4, title: "Review" },
-    { num: 5, title: "Confirmation" }
-  ];
+  const steps = searchParams.get("car")
+    ? [
+        { num: 1, title: "Trip Type" },
+        { num: 3, title: "Trip Details" },
+        { num: 4, title: "Review" },
+        { num: 5, title: "Confirmation" }
+      ]
+    : [
+        { num: 1, title: "Trip Type" },
+        { num: 2, title: "Select Car" },
+        { num: 3, title: "Trip Details" },
+        { num: 4, title: "Review" },
+        { num: 5, title: "Confirmation" }
+      ];
 
   return (
     <div className="min-h-screen bg-[#050505]">
@@ -218,7 +304,7 @@ export default function BookingPage() {
                     ${currentStep > step.num ? 'step-completed' : 
                       currentStep === step.num ? 'step-active' : 'step-pending'}
                   `}>
-                    {currentStep > step.num ? <CheckCircle2 size={20} /> : step.num}
+                    {currentStep > step.num ? <CheckCircle2 size={20} /> : index + 1}
                   </div>
                   <span className={`hidden md:block ml-3 text-sm ${
                     currentStep >= step.num ? 'text-white' : 'text-zinc-500'
@@ -439,7 +525,7 @@ export default function BookingPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <Label className="text-zinc-400">Estimated Distance (km) *</Label>
+                      <Label className="text-zinc-400">Estimated Distance (km) (Optional)</Label>
                       <Input
                         type="number"
                         value={distanceKm}
@@ -504,7 +590,7 @@ export default function BookingPage() {
                     </div>
                     <div className="flex justify-between py-3 border-b border-zinc-800">
                       <span className="text-zinc-500">Distance</span>
-                      <span className="text-white">{distanceKm} km</span>
+                      <span className="text-white">{distanceKm ? `${distanceKm} km` : "Not specified"}</span>
                     </div>
                   </div>
 
@@ -574,6 +660,18 @@ export default function BookingPage() {
                           <span className="text-zinc-500 text-sm">For approved corporate accounts</span>
                         </Label>
                       </div>
+
+                      {settings?.enable_cash_payment && (
+                        <div className={`flex items-center space-x-4 p-4 rounded-lg border cursor-pointer ${
+                          paymentType === 'cash' ? 'border-[#3B82F6] bg-[#3B82F6]/5' : 'border-zinc-800'
+                        }`} onClick={() => setPaymentType('cash')}>
+                          <RadioGroupItem value="cash" id="cash" />
+                          <Label htmlFor="cash" className="flex-1 cursor-pointer">
+                            <span className="text-white font-medium block">Pay After Ride (Cash/UPI)</span>
+                            <span className="text-zinc-500 text-sm">Pay your driver directly at the end of the trip</span>
+                          </Label>
+                        </div>
+                      )}
                     </RadioGroup>
                   </div>
                 </div>
@@ -587,7 +685,7 @@ export default function BookingPage() {
                   {booking ? "Processing..." : (
                     <>
                       <CreditCard className="mr-2" /> 
-                      {paymentType === 'corporate' ? 'Submit Booking' : `Pay ₹${paymentType === 'full' ? fare.total : (fare.total / 2).toFixed(2)}`}
+                      {['corporate', 'cash'].includes(paymentType) ? 'Submit Booking' : `Pay ₹${paymentType === 'full' ? fare.total : (fare.total / 2).toFixed(2)}`}
                     </>
                   )}
                 </Button>

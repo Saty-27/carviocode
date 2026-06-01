@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { API } from "@/App";
+import { API } from "@/apiConfig";
 import { AdminSidebar, AdminHeader } from "./AdminDashboard";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -127,7 +127,7 @@ export default function AdminBookings() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505]">
+    <div className="min-h-screen bg-primary">
       <AdminSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       
       <main className="lg:ml-64">
@@ -137,10 +137,10 @@ export default function AdminBookings() {
           {/* Filters */}
           <div className="flex flex-wrap gap-4 mb-6">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48 bg-[#121212] border-zinc-800">
+              <SelectTrigger className="w-48 bg-secondary border-border">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
-              <SelectContent className="bg-[#121212] border-zinc-800">
+              <SelectContent className="bg-secondary border-border">
                 <SelectItem value="all">All Bookings</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="confirmed">Confirmed</SelectItem>
@@ -173,8 +173,8 @@ export default function AdminBookings() {
                         <Car className="text-[#FFD700]" size={24} />
                       </div>
                       <div>
-                        <p className="text-white font-semibold">{booking.booking_id}</p>
-                        <p className="text-zinc-500 text-sm">{booking.car_name}</p>
+                        <p className="text-foreground font-semibold">{booking.booking_id}</p>
+                        <p className="text-muted-foreground text-sm">{booking.car_name}</p>
                       </div>
                     </div>
                     
@@ -192,24 +192,24 @@ export default function AdminBookings() {
                     <div className="flex items-start gap-2">
                       <MapPin className="text-[#FFD700] mt-1 flex-shrink-0" size={16} />
                       <div>
-                        <p className="text-zinc-500 text-xs">Pickup</p>
-                        <p className="text-white text-sm">{booking.pickup_location}</p>
+                        <p className="text-muted-foreground text-xs">Pickup</p>
+                        <p className="text-foreground text-sm">{booking.pickup_location}</p>
                       </div>
                     </div>
                     
                     <div className="flex items-start gap-2">
                       <Calendar className="text-[#FFD700] mt-1 flex-shrink-0" size={16} />
                       <div>
-                        <p className="text-zinc-500 text-xs">Date & Time</p>
-                        <p className="text-white text-sm">{booking.pickup_date} at {booking.pickup_time}</p>
+                        <p className="text-muted-foreground text-xs">Date & Time</p>
+                        <p className="text-foreground text-sm">{booking.pickup_date} at {booking.pickup_time}</p>
                       </div>
                     </div>
                     
                     <div className="flex items-start gap-2">
                       <CreditCard className="text-[#FFD700] mt-1 flex-shrink-0" size={16} />
                       <div>
-                        <p className="text-zinc-500 text-xs">Total / Paid / Pending</p>
-                        <p className="text-white text-sm">
+                        <p className="text-muted-foreground text-xs">Total / Paid / Pending</p>
+                        <p className="text-foreground text-sm">
                           ₹{booking.total_fare} / ₹{booking.paid_amount} / ₹{booking.pending_amount}
                         </p>
                       </div>
@@ -218,14 +218,14 @@ export default function AdminBookings() {
                     <div className="flex items-start gap-2">
                       <User className="text-[#FFD700] mt-1 flex-shrink-0" size={16} />
                       <div>
-                        <p className="text-zinc-500 text-xs">Driver</p>
-                        <p className="text-white text-sm">{booking.driver_name || "Not Assigned"}</p>
+                        <p className="text-muted-foreground text-xs">Driver</p>
+                        <p className="text-foreground text-sm">{booking.driver_name || "Not Assigned"}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex flex-wrap gap-2 pt-4 border-t border-zinc-800">
+                  <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
                     {!booking.driver_id && booking.booking_status !== "cancelled" && (
                       <Dialog open={assignDriverOpen && selectedBooking?.booking_id === booking.booking_id} onOpenChange={(open) => {
                         setAssignDriverOpen(open);
@@ -236,16 +236,16 @@ export default function AdminBookings() {
                             Assign Driver
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-[#121212] border-zinc-800">
+                        <DialogContent className="bg-secondary border-border">
                           <DialogHeader>
-                            <DialogTitle className="text-white">Assign Driver</DialogTitle>
+                            <DialogTitle className="text-foreground">Assign Driver</DialogTitle>
                           </DialogHeader>
                           <div className="space-y-4">
                             <Select value={selectedDriver} onValueChange={setSelectedDriver}>
-                              <SelectTrigger className="bg-[#0A0A0A] border-zinc-800">
+                              <SelectTrigger className="bg-background border-border text-foreground">
                                 <SelectValue placeholder="Select a driver" />
                               </SelectTrigger>
-                              <SelectContent className="bg-[#121212] border-zinc-800">
+                              <SelectContent className="bg-background border-border text-foreground">
                                 {drivers.filter(d => d.is_available).map((driver) => (
                                   <SelectItem key={driver.driver_id} value={driver.driver_id}>
                                     {driver.name} - {driver.phone}

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, UploadFile, File, Form
 from fastapi.security import HTTPBearer
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -14,6 +14,8 @@ import bcrypt
 from jose import jwt, JWTError
 import httpx
 import razorpay
+import shutil
+import mimetypes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -40,8 +42,74 @@ app = FastAPI(title="Carvio Cabs API")
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
+# Static file hosting for uploads
+from fastapi.staticfiles import StaticFiles
+UPLOADS_DIR = ROOT_DIR / "uploads"
+UPLOADS_DIR.mkdir(exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# ============== EMAIL SYSTEM (WEB3FORMS + SMTP FALLBACK) ==============
+
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+async def send_web3forms_email(subject: str, name: str, email: str, message_text: str):
+    access_key = "43dadfae-99d2-46d0-841a-cf5747e0ced7"
+    url = "https://api.web3forms.com/submit"
+    payload = {
+        "access_key": access_key,
+        "subject": subject,
+        "from_name": "Carvio Cabs System",
+        "name": name,
+        "email": email,
+        "message": message_text
+    }
+    
+    web3_success = False
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=payload, timeout=10.0)
+            if response.status_code == 200:
+                logger.info("Web3Forms email notification sent successfully")
+                web3_success = True
+            else:
+                logger.error(f"Web3Forms failed with status {response.status_code}: {response.text}")
+    except Exception as e:
+        logger.error(f"Error sending Web3Forms email: {e}")
+        
+    if not web3_success:
+        logger.info("Web3Forms failed/timed out. Attempting Gmail SMTP fallback...")
+        try:
+            gmail_user = "satyamgupta1127@gmail.com"
+            gmail_password = "SatyamLA2711"
+            
+            msg = MIMEMultipart()
+            msg['From'] = f'"Carvio System" <{gmail_user}>'
+            msg['To'] = gmail_user
+            msg['Subject'] = subject
+            
+            body = (
+                f"NOTIFICATION SUBMISSION DETAILS\n"
+                f"-----------------------------------\n"
+                f"Source Name: {name}\n"
+                f"Source Email: {email}\n\n"
+                f"Message Content:\n"
+                f"{message_text}\n"
+            )
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Send using standard SMTP_SSL
+            server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+            server.login(gmail_user, gmail_password)
+            server.sendmail(gmail_user, [gmail_user], msg.as_string())
+            server.close()
+            logger.info("Gmail SMTP email notification sent successfully")
+        except Exception as smtp_err:
+            logger.error(f"Gmail SMTP fallback failed: {smtp_err}")
 
 # ============== MODELS ==============
 
@@ -94,7 +162,7 @@ class BookingCreate(BaseModel):
     pickup_date: str
     pickup_time: str
     return_date: Optional[str] = None
-    distance_km: float
+    distance_km: Optional[float] = 0.0
     duration_hours: Optional[float] = None
     payment_type: str
 
@@ -149,6 +217,15 @@ class GalleryImage(BaseModel):
     image: str
     category: str
     is_active: bool = True
+    alt_text: str = ""
+    seo_description: str = ""
+
+class FAQItem(BaseModel):
+    question: str
+    answer: str
+    page: str = "home"   # home | about | services | contact | fleet | gallery
+    order: int = 0
+    is_active: bool = True
 
 class VideoBase(BaseModel):
     title: str
@@ -156,6 +233,43 @@ class VideoBase(BaseModel):
     thumbnail: str
     video_url: str
     is_youtube: bool = True
+    is_active: bool = True
+
+class PageBase(BaseModel):
+    title: str
+    slug: str
+    content: str
+    is_active: bool = True
+    meta_description: Optional[str] = None
+    show_in_navbar: bool = False
+    show_in_footer: bool = False
+    show_on_homepage: bool = False
+
+class LeadBase(BaseModel):
+    name: str
+    phone: str
+    email: str
+    pickup_location: str
+    drop_location: str
+    pickup_date: str
+    pickup_time: str
+    trip_type: str
+    car_preference: str
+    message: Optional[str] = None
+
+class Lead(LeadBase):
+    lead_id: str
+    created_at: str
+
+class PackageBase(BaseModel):
+    name: str
+    description: str
+    short_desc: str = ""
+    price: float
+    duration: str
+    included_km: float = 0
+    image: str = ""
+    features: List[str] = []
     is_active: bool = True
 
 class ContactMessage(BaseModel):
@@ -173,15 +287,27 @@ class AboutContent(BaseModel):
     team_members: List[dict] = []
 
 class SiteSettings(BaseModel):
-    company_name: str = "Carvio Cabs"
-    phone: str = "+91 99999 99999"
-    email: str = "support@carviocabs.com"
-    address: str = ""
-    whatsapp: str = ""
-    facebook: str = ""
-    instagram: str = ""
-    twitter: str = ""
-    map_embed: str = ""
+    company_name: str
+    phone: str
+    email: str
+    address: str
+    whatsapp: Optional[str] = None
+    facebook: Optional[str] = None
+    instagram: Optional[str] = None
+    twitter: Optional[str] = None
+    map_embed: Optional[str] = None
+    enable_cash_payment: bool = True
+    # Hero settings
+    hero_heading: Optional[str] = None
+    hero_subheading: Optional[str] = None
+    hero_bg_image: Optional[str] = None
+    footer_tagline: Optional[str] = None
+    # SEO settings
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+    meta_keywords: Optional[str] = None
+    custom_scripts: Optional[str] = None
+    favicon_url: Optional[str] = None
 
 # ============== AUTH HELPERS ==============
 
@@ -359,6 +485,7 @@ async def create_car(car: CarBase, request: Request):
     car_doc["car_id"] = car_id
     car_doc["created_at"] = datetime.now(timezone.utc).isoformat()
     await db.cars.insert_one(car_doc)
+    car_doc.pop("_id", None)
     return {"car_id": car_id, **car_doc}
 
 @api_router.put("/admin/fleet/{car_id}")
@@ -378,6 +505,7 @@ async def delete_car(car_id: str, request: Request):
 # ============== FARE CALCULATION ==============
 
 def calculate_fare(trip_type: str, car: dict, distance_km: float, duration_hours: float = None, pickup_time: str = None, return_date: str = None, pickup_date: str = None) -> dict:
+    distance_km = distance_km or 0.0
     base_fare = extra_charges = night_charge = driver_allowance = 0
     
     if trip_type == "rental":
@@ -443,13 +571,15 @@ async def create_booking(data: BookingCreate, request: Request):
         paid_amount, pending_amount, payment_status, booking_status = total_fare, 0, "pending", "pending"
     elif data.payment_type == "partial":
         paid_amount, pending_amount, payment_status, booking_status = total_fare * 0.5, total_fare * 0.5, "partial", "pending"
+    elif data.payment_type == "cash":
+        paid_amount, pending_amount, payment_status, booking_status = 0, total_fare, "pending", "pending"
     else:
         paid_amount, pending_amount, payment_status, booking_status = 0, total_fare, "pending", "pending"
     
     booking_id = f"BK{datetime.now().strftime('%Y%m%d')}{uuid.uuid4().hex[:6].upper()}"
     booking_doc = {"booking_id": booking_id, "user_id": user.user_id, "trip_type": data.trip_type, "car_id": data.car_id, "car_name": car["name"], "pickup_location": data.pickup_location, "drop_location": data.drop_location, "pickup_date": data.pickup_date, "pickup_time": data.pickup_time, "return_date": data.return_date, "distance_km": data.distance_km, "duration_hours": data.duration_hours, "total_fare": total_fare, "paid_amount": 0, "pending_amount": total_fare, "payment_type": data.payment_type, "payment_status": payment_status, "booking_status": booking_status, "driver_id": None, "driver_name": None, "driver_phone": None, "razorpay_order_id": None, "created_at": datetime.now(timezone.utc).isoformat()}
     
-    if data.payment_type != "corporate" and razorpay_client:
+    if data.payment_type not in ["corporate", "cash"] and razorpay_client:
         amount_to_pay = paid_amount if data.payment_type == "full" else total_fare * 0.5
         try:
             razorpay_order = razorpay_client.order.create({"amount": int(amount_to_pay * 100), "currency": "INR", "receipt": booking_id, "payment_capture": 1})
@@ -458,6 +588,34 @@ async def create_booking(data: BookingCreate, request: Request):
             logger.error(f"Razorpay error: {e}")
     
     await db.bookings.insert_one(booking_doc)
+    
+    # Send email notification
+    subject = f"New Booking Request Created - {booking_id}"
+    message_text = (
+        f"A new booking request has been created on Carvio Cabs:\n\n"
+        f"Booking ID: {booking_id}\n"
+        f"User Details:\n"
+        f"  Name: {user.name}\n"
+        f"  Email: {user.email}\n"
+        f"  Phone: {user.phone or 'Not specified'}\n\n"
+        f"Ride Details:\n"
+        f"  Vehicle: {car['name']}\n"
+        f"  Trip Type: {data.trip_type}\n"
+        f"  Pickup Location: {data.pickup_location}\n"
+        f"  Drop Location: {data.drop_location or 'Not specified'}\n"
+        f"  Pickup Date: {data.pickup_date}\n"
+        f"  Pickup Time: {data.pickup_time}\n"
+        f"  Return Date: {data.return_date or 'N/A'}\n"
+        f"  Estimated Distance: {data.distance_km} km\n"
+        f"  Duration: {data.duration_hours or 'N/A'} hours\n\n"
+        f"Fare & Payment Details:\n"
+        f"  Total Fare: INR {total_fare}\n"
+        f"  Payment Type: {data.payment_type}\n"
+        f"  Booking Status: {booking_status}\n"
+        f"  Payment Status: {payment_status}\n"
+    )
+    await send_web3forms_email(subject, user.name, user.email, message_text)
+    
     return {"booking_id": booking_id, "total_fare": total_fare, "amount_to_pay": paid_amount if data.payment_type == "full" else total_fare * 0.5, "razorpay_order_id": booking_doc.get("razorpay_order_id"), "razorpay_key_id": RAZORPAY_KEY_ID}
 
 @api_router.post("/bookings/{booking_id}/verify-payment")
@@ -479,6 +637,25 @@ async def verify_payment(booking_id: str, data: dict, request: Request):
         paid_amount, pending_amount, payment_status, booking_status = booking["total_fare"] * 0.5, booking["total_fare"] * 0.5, "partial", "confirmed"
     
     await db.bookings.update_one({"booking_id": booking_id}, {"$set": {"paid_amount": paid_amount, "pending_amount": pending_amount, "payment_status": payment_status, "booking_status": booking_status, "razorpay_payment_id": data.get("razorpay_payment_id")}})
+    
+    # Send email notification
+    subject = f"Booking Payment Verified & Confirmed - {booking_id}"
+    message_text = (
+        f"Payment has been verified and booking is now confirmed:\n\n"
+        f"Booking ID: {booking_id}\n"
+        f"User Details:\n"
+        f"  Name: {user.name}\n"
+        f"  Email: {user.email}\n\n"
+        f"Payment details:\n"
+        f"  Razorpay Payment ID: {data.get('razorpay_payment_id')}\n"
+        f"  Payment Type: {booking.get('payment_type')}\n"
+        f"  Paid Amount: INR {paid_amount}\n"
+        f"  Pending Amount: INR {pending_amount}\n"
+        f"  Payment Status: {payment_status}\n"
+        f"  Booking Status: {booking_status}\n"
+    )
+    await send_web3forms_email(subject, user.name, user.email, message_text)
+    
     return {"message": "Payment verified", "booking_status": booking_status}
 
 @api_router.get("/bookings")
@@ -504,6 +681,27 @@ async def cancel_booking(booking_id: str, request: Request):
     if booking["booking_status"] in ["completed", "cancelled"]:
         raise HTTPException(status_code=400, detail="Cannot cancel this booking")
     await db.bookings.update_one({"booking_id": booking_id}, {"$set": {"booking_status": "cancelled"}})
+    
+    # Send email notification
+    subject = f"Booking Cancelled by User - {booking_id}"
+    message_text = (
+        f"A booking request has been cancelled by the user:\n\n"
+        f"Booking ID: {booking_id}\n"
+        f"User Details:\n"
+        f"  Name: {user.name}\n"
+        f"  Email: {user.email}\n"
+        f"  Phone: {user.phone or 'Not specified'}\n\n"
+        f"Ride Details:\n"
+        f"  Vehicle: {booking.get('car_name')}\n"
+        f"  Trip Type: {booking.get('trip_type')}\n"
+        f"  Pickup Location: {booking.get('pickup_location')}\n"
+        f"  Drop Location: {booking.get('drop_location')}\n"
+        f"  Pickup Date: {booking.get('pickup_date')}\n"
+        f"  Pickup Time: {booking.get('pickup_time')}\n"
+        f"  Total Fare: INR {booking.get('total_fare')}\n"
+    )
+    await send_web3forms_email(subject, user.name, user.email, message_text)
+    
     return {"message": "Booking cancelled"}
 
 # ============== ADMIN BOOKING ROUTES ==============
@@ -522,6 +720,19 @@ async def assign_driver(booking_id: str, data: dict, request: Request):
     if not driver:
         raise HTTPException(status_code=404, detail="Driver not found")
     await db.bookings.update_one({"booking_id": booking_id}, {"$set": {"driver_id": driver["driver_id"], "driver_name": driver["name"], "driver_phone": driver["phone"], "booking_status": "assigned"}})
+    
+    # Send email notification
+    subject = f"Driver Assigned to Booking - {booking_id}"
+    message_text = (
+        f"A driver has been assigned to your booking:\n\n"
+        f"Booking ID: {booking_id}\n"
+        f"Driver Details:\n"
+        f"  Name: {driver['name']}\n"
+        f"  Phone: {driver['phone']}\n\n"
+        f"The driver will coordinate with you shortly regarding the trip details.\n"
+    )
+    await send_web3forms_email(subject, "Carvio Admin", "admin@carviocabs.com", message_text)
+    
     return {"message": "Driver assigned"}
 
 @api_router.put("/admin/bookings/{booking_id}/status")
@@ -555,6 +766,7 @@ async def create_driver(driver: DriverBase, request: Request):
     driver_doc["driver_id"] = driver_id
     driver_doc["created_at"] = datetime.now(timezone.utc).isoformat()
     await db.drivers.insert_one(driver_doc)
+    driver_doc.pop("_id", None)
     return {"driver_id": driver_id, **driver_doc}
 
 @api_router.put("/admin/drivers/{driver_id}")
@@ -586,6 +798,7 @@ async def create_testimonial(testimonial: TestimonialBase, request: Request):
     doc["is_active"] = True
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     await db.testimonials.insert_one(doc)
+    doc.pop("_id", None)
     return {"testimonial_id": testimonial_id, **doc}
 
 @api_router.put("/admin/testimonials/{testimonial_id}")
@@ -614,6 +827,7 @@ async def create_hero_slide(slide: HeroSlide, request: Request):
     doc["slide_id"] = slide_id
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     await db.hero_slides.insert_one(doc)
+    doc.pop("_id", None)
     return {"slide_id": slide_id, **doc}
 
 @api_router.put("/admin/hero-slides/{slide_id}")
@@ -649,6 +863,7 @@ async def create_service(service: ServiceBase, request: Request):
     doc["service_id"] = service_id
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     await db.services.insert_one(doc)
+    doc.pop("_id", None)
     return {"service_id": service_id, **doc}
 
 @api_router.put("/admin/services/{service_id}")
@@ -687,6 +902,7 @@ async def create_blog(blog: BlogBase, request: Request):
     doc["blog_id"] = blog_id
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     await db.blogs.insert_one(doc)
+    doc.pop("_id", None)
     return {"blog_id": blog_id, **doc}
 
 @api_router.put("/admin/blogs/{blog_id}")
@@ -701,7 +917,136 @@ async def delete_blog(blog_id: str, request: Request):
     await db.blogs.delete_one({"blog_id": blog_id})
     return {"message": "Blog deleted"}
 
+# ============== PAGES ==============
+
+@api_router.get("/pages")
+async def get_pages(limit: int = 100):
+    return await db.pages.find({"is_active": True}, {"_id": 0}).to_list(limit)
+
+@api_router.get("/pages/{slug}")
+async def get_page(slug: str):
+    page = await db.pages.find_one({"slug": slug, "is_active": True}, {"_id": 0})
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+    return page
+
+@api_router.get("/admin/pages")
+async def get_admin_pages(request: Request):
+    await require_admin(request)
+    return await db.pages.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+
+@api_router.post("/admin/pages")
+async def create_page(page: PageBase, request: Request):
+    await require_admin(request)
+    page_id = f"page_{uuid.uuid4().hex[:8]}"
+    doc = page.model_dump()
+    doc["page_id"] = page_id
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    await db.pages.insert_one(doc)
+    doc.pop("_id", None)
+    return {"page_id": page_id, **doc}
+
+@api_router.put("/admin/pages/{page_id}")
+async def update_page(page_id: str, page: PageBase, request: Request):
+    await require_admin(request)
+    await db.pages.update_one({"page_id": page_id}, {"$set": page.model_dump()})
+    return {"message": "Page updated"}
+
+@api_router.delete("/admin/pages/{page_id}")
+async def delete_page(page_id: str, request: Request):
+    await require_admin(request)
+    await db.pages.delete_one({"page_id": page_id})
+    return {"message": "Page deleted"}
+
+# ============== LEADS ==============
+
+@api_router.post("/leads")
+async def create_lead(lead: LeadBase):
+    lead_id = f"lead_{uuid.uuid4().hex[:8]}"
+    doc = lead.model_dump()
+    doc["lead_id"] = lead_id
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    await db.booking_leads.insert_one(doc)
+    
+    # Send email notification
+    subject = f"New Booking Enquiry - {lead.name}"
+    message_text = (
+        f"You have received a new booking enquiry/lead from the homepage quick booking form:\n\n"
+        f"Lead ID: {lead_id}\n"
+        f"Name: {lead.name}\n"
+        f"Email: {lead.email}\n"
+        f"Phone: {lead.phone}\n"
+        f"Trip Type: {lead.trip_type}\n"
+        f"Car Preference: {lead.car_preference}\n"
+        f"Pickup Location: {lead.pickup_location}\n"
+        f"Drop Location: {lead.drop_location or 'Not specified'}\n"
+        f"Pickup Date: {lead.pickup_date}\n"
+        f"Pickup Time: {lead.pickup_time}\n"
+        f"Message/Special Requirements: {lead.message or 'None'}"
+    )
+    await send_web3forms_email(subject, lead.name, lead.email, message_text)
+    
+    return {"lead_id": lead_id, "message": "Thank you! We'll contact you shortly with the best quote."}
+
+@api_router.get("/admin/leads")
+async def get_leads(request: Request):
+    await require_admin(request)
+    return await db.booking_leads.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+
+@api_router.delete("/admin/leads/{lead_id}")
+async def delete_lead(lead_id: str, request: Request):
+    await require_admin(request)
+    await db.booking_leads.delete_one({"lead_id": lead_id})
+    return {"message": "Lead deleted"}
+
 # ============== GALLERY ==============
+
+# ============== FILE UPLOAD ==============
+
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"}
+
+@api_router.post("/admin/upload-image")
+async def upload_image(request: Request, file: UploadFile = File(...)):
+    await require_admin(request)
+    content_type = file.content_type or mimetypes.guess_type(file.filename or "")[0] or ""
+    if content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {content_type}. Use JPEG, PNG, WebP, or GIF.")
+    ext = Path(file.filename).suffix.lower() if file.filename else ".jpg"
+    if not ext or ext not in {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"}:
+        ext = ".jpg"
+    unique_name = f"{uuid.uuid4().hex}{ext}"
+    save_path = UPLOADS_DIR / unique_name
+    # Use async read to avoid blocking the event loop
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    with open(save_path, "wb") as f:
+        f.write(contents)
+    file_url = f"/uploads/{unique_name}"
+    logger.info(f"Uploaded image: {unique_name} ({content_type}, {len(contents)} bytes)")
+    return {"url": file_url, "filename": unique_name}
+
+ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/ogg", "video/quicktime", "video/x-matroska"}
+
+@api_router.post("/admin/upload-video")
+async def upload_video(request: Request, file: UploadFile = File(...)):
+    await require_admin(request)
+    content_type = file.content_type or mimetypes.guess_type(file.filename or "")[0] or ""
+    if content_type not in ALLOWED_VIDEO_TYPES:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {content_type}. Use MP4, WebM, OGG, or MOV.")
+    ext = Path(file.filename).suffix.lower() if file.filename else ".mp4"
+    if not ext or ext not in {".mp4", ".webm", ".ogg", ".mov", ".mkv"}:
+        ext = ".mp4"
+    unique_name = f"{uuid.uuid4().hex}{ext}"
+    save_path = UPLOADS_DIR / unique_name
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    with open(save_path, "wb") as f:
+        f.write(contents)
+    file_url = f"/uploads/{unique_name}"
+    logger.info(f"Uploaded video: {unique_name} ({content_type}, {len(contents)} bytes)")
+    return {"url": file_url, "filename": unique_name}
 
 @api_router.get("/gallery")
 async def get_gallery(category: str = None):
@@ -709,6 +1054,11 @@ async def get_gallery(category: str = None):
     if category:
         query["category"] = category
     return await db.gallery.find(query, {"_id": 0}).to_list(100)
+
+@api_router.get("/admin/gallery")
+async def get_admin_gallery(request: Request):
+    await require_admin(request)
+    return await db.gallery.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
 
 @api_router.post("/admin/gallery")
 async def create_gallery_image(image: GalleryImage, request: Request):
@@ -718,7 +1068,14 @@ async def create_gallery_image(image: GalleryImage, request: Request):
     doc["image_id"] = image_id
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     await db.gallery.insert_one(doc)
+    doc.pop("_id", None)
     return {"image_id": image_id, **doc}
+
+@api_router.put("/admin/gallery/{image_id}")
+async def update_gallery_image(image_id: str, image: GalleryImage, request: Request):
+    await require_admin(request)
+    await db.gallery.update_one({"image_id": image_id}, {"$set": image.model_dump()})
+    return {"message": "Image updated"}
 
 @api_router.delete("/admin/gallery/{image_id}")
 async def delete_gallery_image(image_id: str, request: Request):
@@ -732,6 +1089,11 @@ async def delete_gallery_image(image_id: str, request: Request):
 async def get_videos():
     return await db.videos.find({"is_active": True}, {"_id": 0}).to_list(50)
 
+@api_router.get("/admin/videos")
+async def get_admin_videos(request: Request):
+    await require_admin(request)
+    return await db.videos.find({}, {"_id": 0}).sort("created_at", -1).to_list(50)
+
 @api_router.post("/admin/videos")
 async def create_video(video: VideoBase, request: Request):
     await require_admin(request)
@@ -740,6 +1102,7 @@ async def create_video(video: VideoBase, request: Request):
     doc["video_id"] = video_id
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     await db.videos.insert_one(doc)
+    doc.pop("_id", None)
     return {"video_id": video_id, **doc}
 
 @api_router.put("/admin/videos/{video_id}")
@@ -754,6 +1117,35 @@ async def delete_video(video_id: str, request: Request):
     await db.videos.delete_one({"video_id": video_id})
     return {"message": "Video deleted"}
 
+# ============== PACKAGES ==============
+
+@api_router.get("/packages")
+async def get_packages():
+    return await db.packages.find({"is_active": True}, {"_id": 0}).to_list(50)
+
+@api_router.post("/admin/packages")
+async def create_package(package: PackageBase, request: Request):
+    await require_admin(request)
+    pkg_id = f"pkg_{uuid.uuid4().hex[:8]}"
+    doc = package.model_dump()
+    doc["pkg_id"] = pkg_id
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    await db.packages.insert_one(doc)
+    doc.pop("_id", None)
+    return {"pkg_id": pkg_id, **doc}
+
+@api_router.put("/admin/packages/{pkg_id}")
+async def update_package(pkg_id: str, package: PackageBase, request: Request):
+    await require_admin(request)
+    await db.packages.update_one({"pkg_id": pkg_id}, {"$set": package.model_dump()})
+    return {"message": "Package updated"}
+
+@api_router.delete("/admin/packages/{pkg_id}")
+async def delete_package(pkg_id: str, request: Request):
+    await require_admin(request)
+    await db.packages.update_one({"pkg_id": pkg_id}, {"$set": {"is_active": False}})
+    return {"message": "Package deleted"}
+
 # ============== CONTACT MESSAGES ==============
 
 @api_router.post("/contact")
@@ -764,6 +1156,20 @@ async def submit_contact(message: ContactMessage):
     doc["is_read"] = False
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     await db.contact_messages.insert_one(doc)
+    
+    # Send email notification
+    subject = f"New Contact Message: {message.subject or 'No Subject'}"
+    message_text = (
+        f"You have received a new contact message from the website contact form:\n\n"
+        f"Message ID: {message_id}\n"
+        f"Name: {message.name}\n"
+        f"Email: {message.email}\n"
+        f"Phone: {message.phone or 'Not specified'}\n"
+        f"Subject: {message.subject or 'Not specified'}\n\n"
+        f"Message:\n{message.message}"
+    )
+    await send_web3forms_email(subject, message.name, message.email, message_text)
+    
     return {"message": "Message sent successfully", "message_id": message_id}
 
 @api_router.get("/admin/messages")
@@ -782,6 +1188,66 @@ async def delete_message(message_id: str, request: Request):
     await require_admin(request)
     await db.contact_messages.delete_one({"message_id": message_id})
     return {"message": "Message deleted"}
+
+# ============== ADMIN USERS ==============
+
+@api_router.get("/admin/users")
+async def get_all_users(request: Request):
+    await require_admin(request)
+    users = await db.users.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(500)
+    for u in users:
+        u["login_method"] = "google" if (u.get("google_id") or (u.get("picture") and "google" in str(u.get("picture", "")))) else "email"
+        u["booking_count"] = await db.bookings.count_documents({"user_id": u["user_id"]})
+    return users
+
+@api_router.delete("/admin/users/{user_id}")
+async def delete_user(user_id: str, request: Request):
+    await require_admin(request)
+    if user_id.startswith("admin"):
+        raise HTTPException(status_code=400, detail="Cannot delete admin")
+    await db.users.delete_one({"user_id": user_id})
+    return {"message": "User deleted"}
+
+# ============== FAQs ==============
+
+@api_router.get("/faqs")
+async def get_faqs(page: str = None):
+    query = {"is_active": True}
+    if page:
+        query["page"] = page
+    faqs = await db.faqs.find(query, {"_id": 0}).sort("order", 1).to_list(200)
+    return faqs
+
+@api_router.get("/admin/faqs")
+async def get_all_faqs(request: Request):
+    await require_admin(request)
+    faqs = await db.faqs.find({}, {"_id": 0}).sort([("page", 1), ("order", 1)]).to_list(500)
+    return faqs
+
+@api_router.post("/admin/faqs")
+async def create_faq(faq: FAQItem, request: Request):
+    await require_admin(request)
+    faq_id = f"faq_{uuid.uuid4().hex[:8]}"
+    doc = faq.model_dump()
+    doc["faq_id"] = faq_id
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    await db.faqs.insert_one(doc)
+    doc.pop("_id", None)
+    return {"faq_id": faq_id, **doc}
+
+@api_router.put("/admin/faqs/{faq_id}")
+async def update_faq(faq_id: str, faq: FAQItem, request: Request):
+    await require_admin(request)
+    doc = faq.model_dump()
+    doc["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.faqs.update_one({"faq_id": faq_id}, {"$set": doc})
+    return {"message": "FAQ updated"}
+
+@api_router.delete("/admin/faqs/{faq_id}")
+async def delete_faq(faq_id: str, request: Request):
+    await require_admin(request)
+    await db.faqs.delete_one({"faq_id": faq_id})
+    return {"message": "FAQ deleted"}
 
 # ============== ABOUT CONTENT ==============
 
@@ -822,9 +1288,37 @@ async def get_admin_stats(request: Request):
     await require_admin(request)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     
+    # Today bookings (by pickup date)
     today_bookings = await db.bookings.count_documents({"pickup_date": today})
-    revenue_result = await db.bookings.aggregate([{"$match": {"pickup_date": today, "payment_status": {"$in": ["paid", "partial"]}}}, {"$group": {"_id": None, "total": {"$sum": "$paid_amount"}}}]).to_list(1)
-    today_revenue = revenue_result[0]["total"] if revenue_result else 0
+    
+    # Today revenue = sum of paid_amount for bookings that have pickup_date = today AND are paid
+    today_rev_result = await db.bookings.aggregate([
+        {"$match": {"pickup_date": today, "payment_status": {"$in": ["paid", "partial"]}}},
+        {"$group": {"_id": None, "total": {"$sum": "$paid_amount"}}}
+    ]).to_list(1)
+    today_revenue = today_rev_result[0]["total"] if today_rev_result else 0
+    
+    # Total revenue = ALL paid_amount across ALL paid bookings ever (includes cash bookings marked paid)
+    total_rev_result = await db.bookings.aggregate([
+        {"$match": {"payment_status": {"$in": ["paid", "partial"]}}},
+        {"$group": {"_id": None, "total": {"$sum": "$paid_amount"}}}
+    ]).to_list(1)
+    total_revenue = total_rev_result[0]["total"] if total_rev_result else 0
+    
+    # Pending revenue = sum of pending_amount across all unpaid bookings
+    pending_rev_result = await db.bookings.aggregate([
+        {"$match": {"payment_status": {"$in": ["pending", "partial"]}, "booking_status": {"$nin": ["cancelled"]}}},
+        {"$group": {"_id": None, "total": {"$sum": "$pending_amount"}}}
+    ]).to_list(1)
+    pending_revenue = pending_rev_result[0]["total"] if pending_rev_result else 0
+    
+    # Cash bookings awaiting payment (booking_status not cancelled, payment_status pending)
+    cash_pending = await db.bookings.count_documents({
+        "payment_type": "cash",
+        "payment_status": "pending",
+        "booking_status": {"$nin": ["cancelled"]}
+    })
+    
     pending_payments = await db.bookings.count_documents({"payment_status": {"$in": ["pending", "partial"]}})
     active_trips = await db.bookings.count_documents({"booking_status": {"$in": ["assigned", "in_progress"]}})
     available_drivers = await db.drivers.count_documents({"is_available": True, "is_active": True})
@@ -833,7 +1327,21 @@ async def get_admin_stats(request: Request):
     total_messages = await db.contact_messages.count_documents({"is_read": False})
     total_blogs = await db.blogs.count_documents({"is_published": True})
     
-    return {"today_bookings": today_bookings, "today_revenue": today_revenue, "pending_payments": pending_payments, "active_trips": active_trips, "available_drivers": available_drivers, "total_bookings": total_bookings, "total_cars": total_cars, "total_messages": total_messages, "total_blogs": total_blogs}
+    return {
+        "today_bookings": today_bookings,
+        "today_revenue": round(today_revenue, 2),
+        "total_revenue": round(total_revenue, 2),
+        "pending_revenue": round(pending_revenue, 2),
+        "cash_pending": cash_pending,
+        "pending_payments": pending_payments,
+        "active_trips": active_trips,
+        "available_drivers": available_drivers,
+        "total_bookings": total_bookings,
+        "total_cars": total_cars,
+        "total_messages": total_messages,
+        "total_blogs": total_blogs
+    }
+
 
 # ============== SEED DATA ==============
 
@@ -883,13 +1391,13 @@ async def seed_data():
     await db.site_content.insert_one(about_content)
     
     # Seed settings
-    settings = {"type": "settings", "company_name": "Carvio Cabs", "phone": "+91 99999 99999", "email": "support@carviocabs.com", "address": "123 Business Park, Mumbai, India", "whatsapp": "+919999999999", "facebook": "", "instagram": "", "twitter": "", "map_embed": "", "updated_at": datetime.now(timezone.utc).isoformat()}
+    settings = {"type": "settings", "company_name": "Carvio Cabs", "phone": "+91 95943 12974", "email": "support@carviocabs.com", "address": "Office No 205, Dhobi Ghat, Sagar Avenue , 2nd Floor , B-Wing, Vakola, Santacruz East, Mumbai, Maharashtra 400055", "whatsapp": "919594312974", "facebook": "", "instagram": "", "twitter": "", "map_embed": "", "updated_at": datetime.now(timezone.utc).isoformat()}
     await db.site_content.insert_one(settings)
     
     # Admin user
     admin_exists = await db.users.find_one({"email": "admin@carviocabs.com"})
     if not admin_exists:
-        await db.users.insert_one({"user_id": f"user_{uuid.uuid4().hex[:12]}", "email": "admin@carviocabs.com", "name": "Admin", "phone": "9999999999", "password_hash": hash_password("admin123"), "picture": None, "role": "admin", "created_at": datetime.now(timezone.utc).isoformat()})
+        await db.users.insert_one({"user_id": f"user_{uuid.uuid4().hex[:12]}", "email": "admin@carviocabs.com", "name": "SunilSingMDCarvio", "phone": "9999999999", "password_hash": hash_password("SunilSingh344,,,000"), "picture": None, "role": "admin", "created_at": datetime.now(timezone.utc).isoformat()})
     
     # Seed drivers
     drivers = [
@@ -901,6 +1409,64 @@ async def seed_data():
     return {"message": "Data seeded successfully"}
 
 # ============== HEALTH CHECK ==============
+
+@app.get("/sitemap.xml")
+async def sitemap(request: Request):
+    base_url = os.environ.get("FRONTEND_URL", "https://carviocabs.com")
+    
+    # Static urls
+    static_paths = [
+        "",
+        "/about",
+        "/services",
+        "/fleet",
+        "/book",
+        "/contact",
+        "/blog",
+        "/privacy",
+        "/terms",
+        "/sitemap",
+        "/taxi-service-in-andheri",
+        "/cab-service-in-bandra",
+        "/airport-cab-service-santacruz",
+        "/taxi-service-in-vile-parle",
+        "/cab-service-in-dadar",
+        "/taxi-service-in-mahim",
+        "/cab-service-in-kurla",
+        "/car-rental-in-goregaon",
+        "/taxi-service-in-churchgate",
+        "/cab-service-in-matunga",
+        "/airport-taxi-service-mumbai"
+    ]
+    
+    urls = []
+    # Add static pages
+    for path in static_paths:
+        urls.append(f"  <url>\n    <loc>{base_url}{path}</loc>\n    <changefreq>daily</changefreq>\n    <priority>{1.0 if path == '' else 0.8}</priority>\n  </url>")
+        
+    # Fetch all cars from DB
+    cars = await db.cars.find({"is_active": True}).to_list(100)
+    for car in cars:
+        urls.append(f"  <url>\n    <loc>{base_url}/fleet/{car['car_id']}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
+        
+    # Fetch all blogs from DB
+    blogs = await db.blogs.find({"is_published": True}).to_list(500)
+    for blog in blogs:
+        urls.append(f"  <url>\n    <loc>{base_url}/blog/{blog['slug']}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
+        
+    # Fetch all custom active pages from DB
+    custom_pages = await db.pages.find({"is_active": True}).to_list(100)
+    for cp in custom_pages:
+        urls.append(f"  <url>\n    <loc>{base_url}/pages/{cp['slug']}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>")
+        
+    xml_content = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(urls) + "\n</urlset>"
+    return Response(content=xml_content, media_type="application/xml")
+
+@app.get("/robots.txt")
+async def robots():
+    base_url = os.environ.get("FRONTEND_URL", "https://carviocabs.com")
+    content = f"User-agent: *\nAllow: /\n\nSitemap: {base_url}/sitemap.xml\n"
+    return Response(content=content, media_type="text/plain")
 
 @api_router.get("/")
 async def root():

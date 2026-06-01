@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { API, useAuth } from "@/App";
+import { API } from "@/apiConfig";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 export default function AuthCallback() {

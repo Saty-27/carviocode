@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { API, useAuth } from "@/App";
+import { API } from "@/apiConfig";
+import { useAuth } from "@/context/AuthContext";
 import { Navbar, Footer } from "@/pages/HomePage";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,10 +39,48 @@ export default function DashboardPage() {
     
     try {
       await axios.post(`${API}/bookings/${bookingId}/cancel`, {}, { withCredentials: true });
+      const booking = bookings.find(b => b.booking_id === bookingId);
       setBookings(prev => prev.map(b => 
         b.booking_id === bookingId ? { ...b, booking_status: "cancelled" } : b
       ));
       toast.success("Booking cancelled successfully");
+
+      // Send Web3Forms email notification from client-side
+      try {
+        const formData = new FormData();
+        formData.append("access_key", "43dadfae-99d2-46d0-841a-cf5747e0ced7");
+        formData.append("subject", `Booking Cancelled by User - ${bookingId}`);
+        formData.append("from_name", "Carvio Cabs");
+        formData.append("name", user?.name || "Customer");
+        formData.append("email", user?.email || "");
+        formData.append("message", `
+A booking request has been cancelled by the user:
+
+Booking ID: ${bookingId}
+Customer Details:
+  Name: ${user?.name || "Customer"}
+  Email: ${user?.email || ""}
+  Phone: ${user?.phone || "Not specified"}
+
+Ride Details:
+  Vehicle: ${booking?.car_name || "Not specified"}
+  Trip Type: ${booking?.trip_type || "Not specified"}
+  Pickup Location: ${booking?.pickup_location || "Not specified"}
+  Drop Location: ${booking?.drop_location || "Not specified"}
+  Pickup Date: ${booking?.pickup_date || "Not specified"}
+  Pickup Time: ${booking?.pickup_time || "Not specified"}
+  Total Fare: INR ${booking?.total_fare || "Not specified"}
+        `);
+
+        fetch("https://api.web3forms.com/submit", {
+          method: "POST",
+          body: formData
+        }).then(r => r.json()).then(data => {
+          console.log("Web3Forms cancel booking response:", data);
+        }).catch(err => console.error("Web3Forms cancel booking submit error:", err));
+      } catch (err) {
+        console.error("Web3Forms cancel booking fetch error:", err);
+      }
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to cancel booking");
     }

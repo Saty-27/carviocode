@@ -1,25 +1,55 @@
 /* App.css - Carvio Cabs Styles */
 
-/* Remove default text-align center */
+:root {
+  /* Dark Theme (Default) */
+  --bg-primary: #050505;
+  --bg-secondary: #0A0A0A;
+  --bg-card: #121212;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --border-color: #27272a;
+  --accent-gold: #FFD700;
+  --accent-gold-hover: #E5C100;
+  --navbar-bg: rgba(5, 5, 5, 0.8);
+}
+
+:root.light {
+  /* Light Theme */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F4F4F5;
+  --bg-card: #FAFAFA;
+  --text-primary: #09090B;
+  --text-secondary: #71717A;
+  --border-color: #E4E4E7;
+  --accent-gold: #D97706; /* Deeper gold for visibility on light bg */
+  --accent-gold-hover: #B45309;
+  --navbar-bg: rgba(255, 255, 255, 0.8);
+}
+
 .App {
   min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Hero gradient overlay */
 .hero-overlay {
-  background: linear-gradient(to top, #050505 0%, rgba(5, 5, 5, 0.7) 50%, rgba(5, 5, 5, 0.3) 100%);
+  background: linear-gradient(to top, var(--bg-primary) 0%, rgba(5, 5, 5, 0.7) 50%, rgba(5, 5, 5, 0.3) 100%);
 }
 
 /* Gold accent line */
 .gold-line {
   width: 60px;
   height: 3px;
-  background: #FFD700;
+  background: var(--accent-gold);
 }
 
 /* Service card hover */
 .service-card {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
 }
 
 .service-card:hover {
@@ -30,17 +60,19 @@
 /* Fleet card */
 .fleet-card {
   transition: transform 0.3s ease, border-color 0.3s ease;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
 }
 
 .fleet-card:hover {
   transform: scale(1.02);
-  border-color: #FFD700;
+  border-color: var(--accent-gold);
 }
 
 /* Step indicator */
 .step-active {
-  background: #FFD700;
-  color: #050505;
+  background: var(--accent-gold);
+  color: #000000;
 }
 
 .step-completed {
@@ -49,8 +81,8 @@
 }
 
 .step-pending {
-  background: #27272a;
-  color: #A1A1AA;
+  background: var(--border-color);
+  color: var(--text-secondary);
 }
 
 /* Mobile bottom nav */
@@ -59,17 +91,17 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(5, 5, 5, 0.95);
+  background: var(--navbar-bg);
   backdrop-filter: blur(20px);
-  border-top: 1px solid #27272a;
+  border-top: 1px solid var(--border-color);
   z-index: 50;
   padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Table styles for admin */
 .admin-table th {
-  background: #121212;
-  color: #A1A1AA;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-weight: 500;
   text-transform: uppercase;
   font-size: 0.75rem;
@@ -77,11 +109,12 @@
 }
 
 .admin-table td {
-  border-bottom: 1px solid #27272a;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .admin-table tr:hover td {
-  background: #1E1E1E;
+  background: var(--bg-card);
 }
 
 /* Status badges */
@@ -111,12 +144,19 @@
 
 /* Loader */
 .loader {
-  border: 3px solid #27272a;
-  border-top: 3px solid #FFD700;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--accent-gold);
   border-radius: 50%;
   width: 40px;
   height: 40px;
   animation: spin 1s linear infinite;
+}
+
+/* Utility cards */
+.card-dark {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
 }
 
 @keyframes spin {

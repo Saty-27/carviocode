@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { API } from "@/App";
+import { API } from "@/apiConfig";
+import { useSEO } from "@/hooks/useSEO";
 import { Navbar, Footer } from "@/pages/HomePage";
+import { resolveImageUrl } from "@/utils/imageUrl";
 import { Button } from "@/components/ui/button";
 import { 
   Users, Briefcase, ChevronLeft, Clock, MapPin, Sun, Moon, 
@@ -30,6 +32,70 @@ export default function FleetDetailPage() {
     };
     fetchCar();
   }, [carId, navigate]);
+
+  const isCrysta = car?.name?.toLowerCase().includes("innova") || car?.name?.toLowerCase().includes("crysta");
+  const isDzire = car?.name?.toLowerCase().includes("dzire");
+
+  const seoTitle = isCrysta 
+    ? "Toyota Innova Crysta Rental in Mumbai | Carvio Cabs"
+    : isDzire
+    ? "Maruti Suzuki Dzire Cab Rental in Mumbai | Carvio Cabs"
+    : `${car?.name || "Premium Car"} Rental in Mumbai | Carvio Cabs`;
+
+  const seoDescription = isCrysta
+    ? "Book Toyota Innova Crysta with driver in Mumbai for airport transfer, corporate travel, family trips, outstation cab service and event transportation with Carvio Cabs."
+    : isDzire
+    ? "Book Maruti Suzuki Dzire cab rental in Mumbai for airport transfers, local travel, office commute and city rides. Carvio Cabs provides clean sedans with professional drivers."
+    : `Book ${car?.name || "car"} with driver in Mumbai for airport transfer, corporate travel, family trips, outstation cab service and event transportation with Carvio Cabs.`;
+
+  const h1Title = isCrysta
+    ? "Toyota Innova Crysta Rental With Driver in Mumbai"
+    : isDzire
+    ? "Maruti Suzuki Dzire Cab Rental in Mumbai"
+    : `${car?.name || "Premium Car"} Rental With Driver in Mumbai`;
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://carviocabs.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Fleet", "item": "https://carviocabs.com/fleet" },
+      { "@type": "ListItem", "position": 3, "name": car?.name, "item": window.location.href }
+    ]
+  };
+
+  const productSchema = car ? {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": car.name,
+    "image": car.image,
+    "description": car.description,
+    "offers": {
+      "@type": "Offer",
+      "priceCurrency": "INR",
+      "price": car.price_per_km,
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": car.price_per_km,
+        "priceCurrency": "INR",
+        "referenceQuantity": {
+          "@type": "QuantitativeValue",
+          "value": "1",
+          "unitCode": "KMT"
+        }
+      }
+    }
+  } : null;
+
+  useSEO({
+    title: seoTitle,
+    description: seoDescription,
+    keywords: `${car?.name || "cab"}, ${car?.name || "cab"} rental Mumbai, car rental with driver Mumbai`,
+    schema: car ? {
+      "@context": "https://schema.org",
+      "@graph": [breadcrumbSchema, productSchema]
+    } : null
+  });
 
   if (loading) {
     return (
@@ -70,7 +136,7 @@ export default function FleetDetailPage() {
               {/* Car Image */}
               <div className="card-dark overflow-hidden">
                 <img 
-                  src={car.image} 
+                  src={resolveImageUrl(car.image)} 
                   alt={car.name}
                   className="w-full aspect-[4/3] object-cover"
                 />
@@ -79,7 +145,7 @@ export default function FleetDetailPage() {
               {/* Car Details */}
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-4" data-testid="car-name">
-                  {car.name}
+                  {h1Title}
                 </h1>
                 
                 <div className="flex items-center gap-6 mb-6">
